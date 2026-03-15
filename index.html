@@ -1,3 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>PFPX Bridge - Master Online</title>
+    <style>
+        body { background: #050505; color: #d0d0d0; font-family: 'Consolas', monospace; padding: 20px; text-align: center; }
+        .box { border: 1px solid #333; padding: 30px; background: #111; border-radius: 12px; max-width: 500px; margin: 40px auto; box-shadow: 0 0 30px rgba(0,255,65,0.1); }
+        input { background: #000; border: 1px solid #444; color: #00ff41; padding: 12px; font-size: 22px; width: 120px; text-align: center; border-radius: 4px; margin-bottom: 15px; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 16px; }
+        .res-line { background: #000; padding: 20px; border-left: 5px solid #00ff41; margin-top: 25px; min-height: 30px; font-size: 14px; color: #fff; }
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 4px; background: #1b4332; color: #74c69d; font-size: 12px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div id="badge"></div>
+        <h3>PFPX WEATHER BRIDGE</h3>
+        <input type="text" id="icao" placeholder="SBCX" maxlength="4">
+        <br>
+        <button id="btn">SINCRONIZAR AGORA</button>
+        <div id="output" class="res-line">Insira o ICAO e clique em Sincronizar</div>
+    </div>
+
 <script>
         const proxy = "https://api.allorigins.win/get?url=";
         const nearestConfig = { "SBCX": "SBPA", "SBNM": "SBSM", "SBTD": "SBCT" };
@@ -41,3 +65,5 @@
             if(val.length === 4) fetchMetar(val);
         };
     </script>
+</body>
+</html>
