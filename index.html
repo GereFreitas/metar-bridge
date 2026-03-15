@@ -2,50 +2,54 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>PFPX Bridge - Master Online</title>
+    <title>METAR Bridge Direto</title>
     <style>
-        body { background: #050505; color: #d0d0d0; font-family: 'Consolas', monospace; padding: 20px; text-align: center; }
-        .box { border: 1px solid #333; padding: 30px; background: #111; border-radius: 12px; max-width: 500px; margin: 40px auto; box-shadow: 0 0 30px rgba(0,255,65,0.1); }
-        input { background: #000; border: 1px solid #444; color: #00ff41; padding: 12px; font-size: 22px; width: 120px; text-align: center; border-radius: 4px; margin-bottom: 15px; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 4px; font-size: 16px; }
-        .res-line { background: #000; padding: 20px; border-left: 5px solid #00ff41; margin-top: 25px; min-height: 30px; font-size: 14px; color: #fff; }
-        .tag { display: inline-block; padding: 3px 10px; border-radius: 4px; background: #1b4332; color: #74c69d; font-size: 12px; margin-bottom: 10px; }
+        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
+        .box { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 400px; text-align: center; }
+        input { padding: 10px; width: 80px; font-size: 16px; text-transform: uppercase; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        #output { margin-top: 20px; padding: 15px; background: #000; color: #0f0; border: 1px solid #333; word-break: break-all; text-align: left; }
     </style>
 </head>
 <body>
     <div class="box">
-        <div id="badge"></div>
-        <h3>PFPX WEATHER BRIDGE</h3>
+        <h3>BUSCADOR METAR</h3>
         <input type="text" id="icao" placeholder="SBCX" maxlength="4">
-        <br>
-        <button id="btn">SINCRONIZAR AGORA</button>
-        <div id="output" class="res-line">Insira o ICAO e clique em Sincronizar</div>
+        <button onclick="buscarMetar()">OK</button>
+        <div id="output">Insira o ICAO e clique em OK</div>
     </div>
 
-<script>
-// Remova a variável 'proxy' (não precisamos mais dela!)
-async function fetchMetar(icao) {
-    const out = document.getElementById('output');
-    out.innerText = "Buscando...";
-    
-    try {
-        const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
-        const response = await fetch(url);
-        const data = await response.text();
-        
-        // Se o resultado for muito curto, deu erro
-        if (data.length > 5) {
-            out.innerText = data.trim();
-        } else {
-            out.innerText = "Sem METAR disponível.";
+    <script>
+        async function buscarMetar() {
+            const icao = document.getElementById('icao').value.toUpperCase();
+            const out = document.getElementById('output');
+            
+            if (icao.length !== 4) {
+                out.innerText = "Por favor, digite um ICAO válido.";
+                return;
+            }
+
+            out.innerText = "Buscando...";
+
+            try {
+                // A URL direta da NOAA que você validou que funciona no navegador
+                const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) throw new Error("Erro ao acessar servidor");
+                
+                const data = await response.text();
+                
+                if (data.trim().length > 0) {
+                    out.innerText = data.trim();
+                } else {
+                    out.innerText = "METAR não encontrado para este ICAO.";
+                }
+            } catch (err) {
+                out.innerText = "Erro: " + err.message;
+            }
         }
-    } catch (e) {
-        out.innerText = "Erro: " + e.message;
-    }
-}
-</script>
-
-
-    
+    </script>
 </body>
 </html>
