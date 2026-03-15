@@ -20,21 +20,27 @@
     </div>
 
 <script>
-        function buscarMetar() {
-            const icao = document.getElementById('icao').value.toUpperCase();
-            
-            if (icao.length !== 4) {
-                alert("Por favor, digite um ICAO válido.");
-                return;
-            }
+    function buscarMetar() {
+        const icao = document.getElementById('icao').value.toUpperCase();
+        if (icao.length !== 4) { alert("ICAO inválido"); return; }
 
-            // O truque: em vez de esconder a busca (fetch), abrimos a fonte oficial.
-            // O navegador não bloqueia isso porque é uma navegação comum.
-            const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
-            
-            window.open(url, '_blank');
-            document.getElementById('output').innerText = "O METAR foi aberto em uma nova aba oficial da NOAA.";
-        }
-    </script>
+        // Tenta a NOAA (Internacional)
+        const urlNOAA = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
+        
+        // Se a NOAA falhar, você pode usar este link da REDEMET abaixo
+        // Como o navegador bloqueia o fetch, você pode simplesmente clicar 
+        // neste link se o primeiro não retornar nada:
+        const urlREDEMET = `https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`;
+
+        // Vamos abrir a NOAA, mas deixamos o link da REDEMET pronto na página
+        window.open(urlNOAA, '_blank');
+        
+        document.getElementById('output').innerHTML = 
+            `Tentando buscar: ${icao}<br><br>` +
+            `<a href="${urlREDEMET}" target="_blank" style="color: #00ff41;">` +
+            `Se a aba acima estiver vazia, clique aqui para buscar na REDEMET (Brasil)` +
+            `</a>`;
+    }
+</script>
 </body>
 </html>
