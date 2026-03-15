@@ -2,45 +2,91 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>METAR Bridge Direto</title>
+    <title>PFPX WEATHER BRIDGE</title>
     <style>
-        body { background: #121212; color: #eee; font-family: sans-serif; display: flex; justify-content: center; padding-top: 50px; }
-        .box { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 400px; text-align: center; }
-        input { padding: 10px; width: 80px; font-size: 16px; text-transform: uppercase; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-        #output { margin-top: 20px; padding: 15px; background: #000; color: #0f0; border: 1px solid #333; word-break: break-all; text-align: left; }
+        body { background: #050505; color: #fff; font-family: 'Consolas', monospace; padding: 20px; text-align: center; }
+        .box { border: 1px solid #333; padding: 20px; background: #111; border-radius: 8px; max-width: 450px; margin: 40px auto; }
+        input { background: #000; border: 1px solid #444; color: #00ff41; padding: 10px; width: 100px; text-align: center; font-size: 18px; }
+        button { background: #00ff41; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        .res-line { margin-top: 20px; padding: 15px; background: #000; border: 1px solid #222; font-size: 14px; min-height: 40px; }
+        .status-tag { display: inline-block; padding: 2px 8px; font-size: 10px; border-radius: 3px; margin-bottom: 10px; }
+        .tag-real { background: #1b4332; color: #74c69d; }
+        .tag-hist { background: #4a2500; color: #ffba08; }
+        .tag-proxy { background: #3c096c; color: #c77dff; }
     </style>
 </head>
 <body>
     <div class="box">
-        <h3>BUSCADOR METAR</h3>
+        <h3>PFPX WEATHER BRIDGE</h3>
         <input type="text" id="icao" placeholder="SBCX" maxlength="4">
-        <button onclick="buscarMetar()">OK</button>
-        <div id="output">Insira o ICAO e clique em OK</div>
+        <button id="btn">SINCRONIZAR</button>
+        <div id="badge"></div>
+        <div id="output" class="res-line">Aguardando...</div>
     </div>
 
-<script>
-    function buscarMetar() {
-        const icao = document.getElementById('icao').value.toUpperCase();
-        if (icao.length !== 4) { alert("ICAO inválido"); return; }
+    <script>
+        const proxy = "https://api.allorigins.win/get?url=";
+        const nearestConfig = { "SBCX": "SBPA", "SBNM": "SBSM", "SBTD": "SBCT" };
 
-        // Tenta a NOAA (Internacional)
-        const urlNOAA = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
-        
-        // Se a NOAA falhar, você pode usar este link da REDEMET abaixo
-        // Como o navegador bloqueia o fetch, você pode simplesmente clicar 
-        // neste link se o primeiro não retornar nada:
-        const urlREDEMET = `https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`;
+        function processarResultado(data, icao) {
+            const lines = data.split('\n');
+            return lines[0].replace(/=/g, "").trim();
+        }
 
-        // Vamos abrir a NOAA, mas deixamos o link da REDEMET pronto na página
-        window.open(urlNOAA, '_blank');
-        
-        document.getElementById('output').innerHTML = 
-            `Tentando buscar: ${icao}<br><br>` +
-            `<a href="${urlREDEMET}" target="_blank" style="color: #00ff41;">` +
-            `Se a aba acima estiver vazia, clique aqui para buscar na REDEMET (Brasil)` +
-            `</a>`;
-    }
-</script>
+        async function fetchMetarSmart(icao, isFallback = false) {
+            const out = document.getElementById('output');
+            const badge = document.getElementById('badge');
+            
+            try {
+                // 1. NOAA Real-time
+                let url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw&ts=${Date.now()}`;
+                let res = await fetch(proxy + encodeURIComponent(url));
+                let json = await res.json();
+                let data = json.contents;
+                if (data && data.trim().length > 10) {
+                    badge.innerHTML = '<span class="status-tag tag-real">NOAA REAL-TIME</span>';
+                    return processarResultado(data, icao);
+                }
+
+                // 2. NOAA Histórico 6h
+                url = `https://aviationweather.gov/api/data/metar?ids=${icao}&hours=6&format=raw`;
+                res = await fetch(proxy + encodeURIComponent(url));
+                json = await res.json();
+                data = json.contents;
+                if (data && data.trim().length > 10) {
+                    badge.innerHTML = '<span class="status-tag tag-hist">NOAA HISTÓRICO (6H)</span>';
+                    return processarResultado(data, icao);
+                }
+
+                // 3. REDEMET
+                url = `https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`;
+                res = await fetch(proxy + encodeURIComponent(url));
+                json = await res.json();
+                let clean = json.contents.replace(/<[^>]*>?/gm, '').trim();
+                if (clean.length > 15 && !clean.includes("não localizada")) {
+                    badge.innerHTML = '<span class="status-tag tag-hist">REDEMET (BRASIL)</span>';
+                    return clean.includes(" - ") ? clean.split(" - ")[1] : clean;
+                }
+
+                // 4. Backup Regional
+                if (!isFallback && nearestConfig[icao]) {
+                    let backup = await fetchMetarSmart(nearestConfig[icao], true);
+                    if (backup) {
+                        badge.innerHTML = `<span class="status-tag tag-proxy">BACKUP VIA ${nearestConfig[icao]}</span>`;
+                        return backup.replace(nearestConfig[icao], icao);
+                    }
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+        document.getElementById('btn').onclick = async () => {
+            const icao = document.getElementById('icao').value.toUpperCase().trim();
+            const out = document.getElementById('output');
+            out.innerText = "Sincronizando camadas...";
+            const res = await fetchMetarSmart(icao);
+            out.innerText = res ? res : "DADO NÃO DISPONÍVEL";
+        };
+    </script>
 </body>
 </html>
