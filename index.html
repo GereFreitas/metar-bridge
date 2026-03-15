@@ -19,36 +19,21 @@
         <div id="output">Insira o ICAO e clique em OK</div>
     </div>
 
-    <script>
-        async function buscarMetar() {
+<script>
+        function buscarMetar() {
             const icao = document.getElementById('icao').value.toUpperCase();
-            const out = document.getElementById('output');
             
             if (icao.length !== 4) {
-                out.innerText = "Por favor, digite um ICAO válido.";
+                alert("Por favor, digite um ICAO válido.");
                 return;
             }
 
-            out.innerText = "Buscando...";
-
-            try {
-                // A URL direta da NOAA que você validou que funciona no navegador
-                const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
-                
-                const response = await fetch(url);
-                
-                if (!response.ok) throw new Error("Erro ao acessar servidor");
-                
-                const data = await response.text();
-                
-                if (data.trim().length > 0) {
-                    out.innerText = data.trim();
-                } else {
-                    out.innerText = "METAR não encontrado para este ICAO.";
-                }
-            } catch (err) {
-                out.innerText = "Erro: " + err.message;
-            }
+            // O truque: em vez de esconder a busca (fetch), abrimos a fonte oficial.
+            // O navegador não bloqueia isso porque é uma navegação comum.
+            const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
+            
+            window.open(url, '_blank');
+            document.getElementById('output').innerText = "O METAR foi aberto em uma nova aba oficial da NOAA.";
         }
     </script>
 </body>
