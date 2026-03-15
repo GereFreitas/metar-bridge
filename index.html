@@ -23,47 +23,26 @@
     </div>
 
 <script>
-    async function fetchMetar(icao) {
-        const out = document.getElementById('output');
-        out.innerText = "Sincronizando...";
-
-        try {
-            // Usamos a API oficial da NOAA, que geralmente permite acesso via navegador
-            const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                mode: 'cors', // Modo de segurança que o navegador aceita
-                headers: { 'Accept': 'text/plain' }
-            });
-            
-            if (!response.ok) throw new Error("Servidor ocupado");
-            
-            const data = await response.text();
-            
-            if (data && data.length > 10) {
-                out.innerText = data.trim();
-            } else {
-                out.innerText = "METAR não encontrado para este ICAO.";
-            }
-        } catch (e) {
-            // Se falhar o acesso direto, vamos tentar a Redemet via um Proxy de fallback ultra-rápido
-            try {
-                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(`https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`);
-                const res = await fetch(proxyUrl);
-                const json = await res.json();
-                const clean = json.contents.replace(/<[^>]*>?/gm, '').trim();
-                out.innerText = clean;
-            } catch (err) {
-                out.innerText = "Erro persistente. Tente outro aeroporto.";
-            }
+// Remova a variável 'proxy' (não precisamos mais dela!)
+async function fetchMetar(icao) {
+    const out = document.getElementById('output');
+    out.innerText = "Buscando...";
+    
+    try {
+        const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
+        const response = await fetch(url);
+        const data = await response.text();
+        
+        // Se o resultado for muito curto, deu erro
+        if (data.length > 5) {
+            out.innerText = data.trim();
+        } else {
+            out.innerText = "Sem METAR disponível.";
         }
+    } catch (e) {
+        out.innerText = "Erro: " + e.message;
     }
-
-    document.getElementById('btn').onclick = () => {
-        const val = document.getElementById('icao').value.toUpperCase().trim();
-        if(val.length === 4) fetchMetar(val);
-    };
+}
 </script>
 
 
