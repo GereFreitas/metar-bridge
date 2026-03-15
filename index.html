@@ -23,40 +23,50 @@
     </div>
 
 <script>
-        // Usamos uma URL de proxy que lida com o modo 'no-cors'
-        const proxy = "https://api.allorigins.win/raw?url=";
-        
-        async function fetchMetar(icao) {
-            const out = document.getElementById('output');
-            const badge = document.getElementById('badge');
-            out.innerText = "Sincronizando...";
+    async function fetchMetar(icao) {
+        const out = document.getElementById('output');
+        out.innerText = "Sincronizando...";
 
+        try {
+            // Usamos a API oficial da NOAA, que geralmente permite acesso via navegador
+            const url = `https://aviationweather.gov/api/data/metar?ids=${icao}&format=raw`;
+            
+            const response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors', // Modo de segurança que o navegador aceita
+                headers: { 'Accept': 'text/plain' }
+            });
+            
+            if (!response.ok) throw new Error("Servidor ocupado");
+            
+            const data = await response.text();
+            
+            if (data && data.length > 10) {
+                out.innerText = data.trim();
+            } else {
+                out.innerText = "METAR não encontrado para este ICAO.";
+            }
+        } catch (e) {
+            // Se falhar o acesso direto, vamos tentar a Redemet via um Proxy de fallback ultra-rápido
             try {
-                // A chave aqui é o modo 'no-cors' para evitar bloqueios do navegador
-                const url = `https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`;
-                const response = await fetch(proxy + encodeURIComponent(url), {
-                    mode: 'cors',
-                    headers: { 'Accept': 'text/plain' }
-                });
-                
-                const data = await response.text();
-                
-                if (data && data.includes(icao)) {
-                    badge.innerHTML = '<span class="tag">CONECTADO</span>';
-                    // Limpeza bruta
-                    let clean = data.replace(/<[^>]*>?/gm, '').trim();
-                    out.innerText = clean;
-                } else {
-                    out.innerText = "DADO NÃO ENCONTRADO";
-                }
-            } catch (e) {
-                out.innerText = "ERRO: " + e.message;
+                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(`https://www.redemet.aer.mil.br/api/consulta_automatica/index.php?local=${icao}&msg=metar`);
+                const res = await fetch(proxyUrl);
+                const json = await res.json();
+                const clean = json.contents.replace(/<[^>]*>?/gm, '').trim();
+                out.innerText = clean;
+            } catch (err) {
+                out.innerText = "Erro persistente. Tente outro aeroporto.";
             }
         }
+    }
 
-        document.getElementById('btn').onclick = () => {
-            const val = document.getElementById('icao').value.toUpperCase().trim();
-            if(val.length === 4) fetchMetar(val);
-        };
-    </script></body>
+    document.getElementById('btn').onclick = () => {
+        const val = document.getElementById('icao').value.toUpperCase().trim();
+        if(val.length === 4) fetchMetar(val);
+    };
+</script>
+
+
+    
+</body>
 </html>
